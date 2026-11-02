@@ -1,6 +1,7 @@
 """Считает заказы и выручку по связке «артикул - день» из sales.csv."""
 import csv
 import sys
+from collections import defaultdict
 
 STATUS_ALIASES = {"delivered": "delivered", "cancelled": "cancelled", "canceled": "cancelled"}
 
@@ -40,5 +41,26 @@ def read_orders(path):
     return list(orders.values())
 
 
+def aggregate(orders):
+    """Возвращает строки (sku, order_date, orders, revenue), отсортированные по sku и дате."""
+    count = defaultdict(int)
+    revenue = defaultdict(int)
+    for o in orders:
+        key = (o["sku"], o["order_date"])
+        count[key] += 1
+        if o["status"] == "delivered":
+            revenue[key] += int(o["quantity"]) * int(o["price"])
+    return [(sku, day, count[(sku, day)], revenue[(sku, day)]) for sku, day in sorted(count)]
+
+
+def main(src="sales.csv", dst="daily_by_sku.csv"):
+    rows = aggregate(read_orders(src))
+    with open(dst, "w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["sku", "order_date", "orders", "revenue"])
+        w.writerows(rows)
+    print(f"Готово: {len(rows)} строк в {dst}")
+
+
 if __name__ == "__main__":
-    print(len(read_orders("sales.csv")))
+    main(*sys.argv[1:3])
