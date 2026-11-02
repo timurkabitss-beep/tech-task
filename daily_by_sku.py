@@ -49,6 +49,10 @@ def aggregate(orders):
         key = (o["sku"], o["order_date"])
         count[key] += 1
         if o["status"] == "delivered":
+            if not o["quantity"]:
+                print(f"Заказ {o['order_id']} выкуплен, но без quantity: в выручку не входит",
+                      file=sys.stderr)
+                continue
             revenue[key] += int(o["quantity"]) * int(o["price"])
     return [(sku, day, count[(sku, day)], revenue[(sku, day)]) for sku, day in sorted(count)]
 
